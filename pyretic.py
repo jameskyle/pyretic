@@ -71,7 +71,7 @@ def parseArgs():
     desc = ( 'Pyretic runtime' )
     usage = ( '%prog [options]\n'
               '(type %prog -h for details)' )
-    
+
     end_args = 0
     for arg in sys.argv[1:]:
         if not re.match('-',arg):
@@ -82,10 +82,10 @@ def parseArgs():
         sys.argv = sys.argv[:end_args+1]
 
     op = OptionParser( description=desc, usage=usage )
-    op.add_option( '--frontend-only', '-f', action="store_true", 
+    op.add_option( '--frontend-only', '-f', action="store_true",
                      dest="frontend_only", help = 'only start the frontend'  )
     op.add_option( '--mode', '-m', type='choice',
-                     choices=['interpreted','i','reactive0','r0','proactive0','p0','proactive1','p1'], 
+                     choices=['interpreted','i','reactive0','r0','proactive0','p0','proactive1','p1'],
                      help = '|'.join( ['interpreted/i','reactive0/r0','proactiveN/pN for N={0,1}'] )  )
     op.add_option( '--verbosity', '-v', type='choice',
                    choices=['low','normal','high','please-make-it-stop'],
@@ -174,27 +174,24 @@ def main():
     handler = util.QueueStreamHandler(logging_queue)
     logger.addHandler(handler)
     logger.setLevel(log_level)
-    
+
     runtime = Runtime(Backend(),main,path_main,kwargs,options.mode,options.verbosity)
     if not options.frontend_only:
         try:
-            output = subprocess.check_output('echo $PYTHONPATH',shell=True).strip()
-        except:
-            print 'Error: Unable to obtain PYTHONPATH'
+            import pox
+        except ImportError:
+            print >> sys.stderr, 'Error: Unable to import pox module'
             sys.exit(1)
-        poxpath = None
-        for p in output.split(':'):
-             if re.match('.*pox/?$',p):
-                 poxpath = os.path.abspath(p)
-                 break
-        if poxpath is None:
-            print 'Error: pox not found in PYTHONPATH'
+
+        pox_exec = os.path.join(os.dirname(pox.__file__ ), "pox.py")
+        if not os.path.exists(pox_exec):
+            print >> sys.stderr, 'Error: Could not find pox.py'
             sys.exit(1)
-        pox_exec = os.path.join(poxpath,'pox.py')
+
         python=sys.executable
         # TODO(josh): pipe pox_client stdout to subprocess.PIPE or
         # other log file descriptor if necessary
-        of_client = subprocess.Popen([python, 
+        of_client = subprocess.Popen([python,
                                       pox_exec,
                                       'of_client.pox_client' ],
                                      stdout=sys.stdout,
